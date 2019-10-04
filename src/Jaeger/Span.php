@@ -83,9 +83,9 @@ class Span implements \OpenTracing\Span{
     /**
      * @param string $key
      * @param null $default
-     * @return string
+     * @return mixed
      */
-    public function getTag(string $key, ?string $default = null): string
+    public function getTag(string $key, ?string $default = null)
     {
         return isset($this->tags[$key]) ? $this->tags[$key] : $default;
     }

@@ -15,6 +15,7 @@
 
 namespace Jaeger;
 
+use Jaeger\Reporter\RemoteReporter;
 use Jaeger\Sampler\Sampler;
 use OpenTracing\SpanContext;
 use OpenTracing\Formats;
@@ -26,6 +27,9 @@ use Jaeger\Propagator\Propagator;
 
 class Jaeger implements Tracer {
 
+    /**
+     * @var Reporter|RemoteReporter|null
+     */
     private $reporter = null;
 
     private $sampler = null;
@@ -73,6 +77,13 @@ class Jaeger implements Tracer {
         }
     }
 
+    /**
+     * @param string $hostPort
+     */
+    public function setHostPort(string $hostPort): void
+    {
+        $this->reporter->tran->hostPort = $hostPort;
+    }
 
     /**
      * @param array $tags  key => value

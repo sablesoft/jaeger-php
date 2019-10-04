@@ -113,14 +113,6 @@ class Config {
         return $tracer;
     }
 
-    /**
-     * @param string $hostPort
-     */
-    public function setHostPort(string $hostPort): void
-    {
-        $this->transport->hostPort = $hostPort;
-    }
-
 
     /**
      * close tracer

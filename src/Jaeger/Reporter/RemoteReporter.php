@@ -17,9 +17,13 @@ namespace Jaeger\Reporter;
 
 use Jaeger\Jaeger;
 use Jaeger\Transport\Transport;
+use Jaeger\Transport\TransportUdp;
 
-class RemoteReporter implements Reporter{
+class RemoteReporter implements Reporter {
 
+    /**
+     * @var Transport|TransportUdp|null
+     */
     public $tran = null;
 
     public function __construct(Transport $tran)
