@@ -17,8 +17,20 @@ namespace Jaeger\Transport;
 
 use Jaeger\Jaeger;
 
+/**
+ * Interface Transport
+ * @package Jaeger\Transport
+ */
 interface Transport {
+
+    /**
+     * @param Jaeger $jaeger
+     * @return mixed
+     */
     public function append(Jaeger $jaeger);
 
-    public function flush();
+    /**
+     * @return int
+     */
+    public function flush(): int;
 }

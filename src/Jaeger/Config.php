@@ -26,6 +26,9 @@ use Jaeger\Propagator\ZipkinPropagator;
 
 class Config {
 
+    /**
+     * @var null|TransportUdp
+     */
     private $transport = null;
 
     private $reporter = null;
@@ -45,17 +48,6 @@ class Config {
     public static $disabled = false;
 
     public static $propagator = \Jaeger\Constants\PROPAGATOR_JAEGER;
-
-
-    private function __construct(){
-
-    }
-
-
-    private function __clone(){
-
-    }
-
 
     public static function getInstance()
     {
@@ -88,8 +80,7 @@ class Config {
             return self::$tracer[$serverName];
         }
 
-
-        if($this->transport == null){
+        if($this->transport == null) {
             $this->transport = new TransportUdp($agentHostPort);
         }
 
@@ -113,15 +104,21 @@ class Config {
 
         if(self::$propagator == \Jaeger\Constants\PROPAGATOR_ZIPKIN){
             $tracer->setPropagator(new ZipkinPropagator());
-        }else{
+        } else {
             $tracer->setPropagator(new JaegerPropagator());
         }
 
-
         self::$tracer[$serverName] = $tracer;
 
-
         return $tracer;
+    }
+
+    /**
+     * @param string $hostPort
+     */
+    public function setHostPort(string $hostPort): void
+    {
+        $this->transport->hostPort = $hostPort;
     }
 
 

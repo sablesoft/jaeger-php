@@ -51,7 +51,7 @@ class Span implements \OpenTracing\Span{
     }
 
     /**
-     * @return SpanContext
+     * @return \OpenTracing\SpanContext
      */
     public function getContext(){
         return $this->spanContext;
@@ -61,7 +61,7 @@ class Span implements \OpenTracing\Span{
      * @param float|int|\DateTimeInterface|null $finishTime if passing float or int
      * it should represent the timestamp (including as many decimal places as you need)
      * @param array $logRecords
-     * @return mixed
+     * @return void
      */
     public function finish($finishTime = null, array $logRecords = []){
         $this->finishTime = $finishTime == null ? $this->microtimeToInt() : $finishTime;
@@ -80,6 +80,15 @@ class Span implements \OpenTracing\Span{
         $this->tags[$key] = $value;
     }
 
+    /**
+     * @param string $key
+     * @param null $default
+     * @return string
+     */
+    public function getTag(string $key, ?string $default = null): string
+    {
+        return isset($this->tags[$key]) ? $this->tags[$key] : $default;
+    }
 
     /**
      * Adds a log record to the span
@@ -115,8 +124,9 @@ class Span implements \OpenTracing\Span{
      * @param string $key
      * @return string
      */
-    public function getBaggageItem($key){
-        $this->spanContext->getBaggageItem($key);
+    public function getBaggageItem($key) : string
+    {
+        return $this->spanContext->getBaggageItem($key);
     }
 
 

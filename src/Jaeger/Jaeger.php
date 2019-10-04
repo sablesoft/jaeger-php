@@ -24,7 +24,7 @@ use OpenTracing\StartSpanOptions;
 use OpenTracing\Reference;
 use Jaeger\Propagator\Propagator;
 
-class Jaeger implements Tracer{
+class Jaeger implements Tracer {
 
     private $reporter = null;
 
@@ -42,7 +42,7 @@ class Jaeger implements Tracer{
 
     public $process = null;
 
-    public $procesSize = 0;
+    public $processSize = 0;
 
     public $serverName = '';
 
