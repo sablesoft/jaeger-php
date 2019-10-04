@@ -94,7 +94,6 @@ class TransportUdp implements Transport {
                 continue;
             }
             $this->bufferSize += $spanSize;
-            $spanThrifts[] = $spanThrift;
             if($this->bufferSize > self::$maxSpanBytes){
                 self::$batches[] = [
                     'thriftProcess' => $jaeger->processThrift,
@@ -103,6 +102,7 @@ class TransportUdp implements Transport {
                 $spanThrifts = [];
                 $this->bufferSize = 0;
             }
+            $spanThrifts[] = $spanThrift;
         }
 
         self::$batches[] = [
