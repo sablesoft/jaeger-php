@@ -30,13 +30,13 @@ use Jaeger\Constants;
  * Class TransportUdp
  * @package Jaeger\Transport
  */
-class TransportUdp implements Transport {
+class TransportUdp implements TransportInterface {
 
-    private $tran;
+    /** @var TMemoryBuffer */
+    private $buffer;
 
     public $hostPort = '';
 
-    // sizeof(Span) * numSpans + processByteSize + emitBatchOverhead <= maxPacketSize
     public static $maxSpanBytes = 0;
 
     public static $batches = [];
@@ -49,20 +49,21 @@ class TransportUdp implements Transport {
 
     public $bufferSize = 0;
 
-    public function __construct(?string $hostPort = '', ?string $maxPacketSize = '')
-    {
+    public function __construct(
+        ?string $hostPort = '',
+        ?string $maxPacketSize = ''
+    ) {
         $parts = explode('//', $hostPort);
         $hostPort = end($hostPort);
         $this->hostPort = empty($hostPort)? $this->agentServerHostPort: $hostPort;
 
-        if($maxPacketSize == 0){
+        if ($maxPacketSize == 0) {
             $maxPacketSize = Constants\UDP_PACKET_MAX_LENGTH;
         }
-
         self::$maxSpanBytes = $maxPacketSize - Constants\EMIT_BATCH_OVER_HEAD;
 
-        $this->tran = new TMemoryBuffer();
-        $this->thriftProtocol = new TCompactProtocol($this->tran);
+        $this->buffer = new TMemoryBuffer();
+        $this->thriftProtocol = new TCompactProtocol($this->buffer);
     }
 
     public function buildAndCalcSizeOfProcessThrift(Tracer $jaeger): void
@@ -73,20 +74,14 @@ class TransportUdp implements Transport {
         $this->bufferSize += $this->processSize;
     }
 
+    public function append(Tracer $tracer) {
 
-    /**
-     * 收集将要发送的追踪信息
-     * @param Jaeger $jaeger
-     * @return bool
-     */
-    public function append(Tracer $jaeger){
-
-        if($jaeger->process == null){
-            $this->buildAndCalcSizeOfProcessThrift($jaeger);
+        if ($tracer->process == null) {
+            $this->buildAndCalcSizeOfProcessThrift($tracer);
         }
 
         $spanThrifts = [];
-        foreach($jaeger->spans as $span){
+        foreach ($tracer->spans as $span) {
             $spanThrift = (new JaegerThriftSpan())->buildJaegerSpanThrift($span);
             /** @var Span $agentSpan */
             $agentSpan = Span::getInstance();
@@ -98,7 +93,7 @@ class TransportUdp implements Transport {
             $this->bufferSize += $spanSize;
             if($this->bufferSize > self::$maxSpanBytes){
                 self::$batches[] = [
-                    'thriftProcess' => $jaeger->processThrift,
+                    'thriftProcess' => $tracer->processThrift,
                     'thriftSpans' => $spanThrifts
                 ];
                 $spanThrifts = [];
@@ -108,13 +103,12 @@ class TransportUdp implements Transport {
         }
 
         self::$batches[] = [
-            'thriftProcess' => $jaeger->processThrift,
+            'thriftProcess' => $tracer->processThrift,
             'thriftSpans' => $spanThrifts
         ];
 
         return true;
     }
-
 
     public function resetBuffer(): void
     {
@@ -122,23 +116,13 @@ class TransportUdp implements Transport {
         self::$batches = [];
     }
 
-
-    /**
-     * 获取序列化后的thrift和计算序列化后的thrift字符长度
-     * @param TStruct $ts
-     * @param $serializedThrift
-     * @return mixed
-     */
-    private function getAndCalcSizeOfSerializedThrift(TStruct $ts, &$serializedThrift){
-
+    private function getAndCalcSizeOfSerializedThrift(TStruct $ts, &$serializedThrift) {
         $ts->write($this->thriftProtocol);
-        $serThriftStrlen = $this->tran->available();
-        //获取后buf清空
-        $serializedThrift['wrote'] = $this->tran->read(Constants\UDP_PACKET_MAX_LENGTH);
+        $serThriftStrlen = $this->buffer->available();
+        $serializedThrift['wrote'] = $this->buffer->read(Constants\UDP_PACKET_MAX_LENGTH);
 
         return $serThriftStrlen;
     }
-
 
     /**
      * @return int

@@ -17,6 +17,7 @@ namespace Jaeger;
 
 use Jaeger\Reporter\RemoteReporter;
 use Jaeger\Sampler\Sampler;
+use Jaeger\Transport\TransportInterface;
 use OpenTracing\SpanContext;
 use OpenTracing\Formats;
 use OpenTracing\Tracer as OpenTracerInterface;
@@ -28,9 +29,9 @@ use Jaeger\Propagator\Propagator;
 class Tracer implements OpenTracerInterface {
 
     /**
-     * @var Reporter|RemoteReporter|null
+     * @var TransportInterface
      */
-    private $reporter = null;
+    private $transport;
 
     private $sampler = null;
 
@@ -58,15 +59,15 @@ class Tracer implements OpenTracerInterface {
 
     public $propagator = null;
 
-    public function __construct($serverName = '', Reporter $reporter, Sampler $sampler,
-                                ScopeManager $scopeManager){
-
-        $this->reporter = $reporter;
-
+    public function __construct(
+        TransportInterface $transport,
+        Sampler $sampler,
+        ScopeManager $scopeManager,
+        $serverName = ''
+    ) {
+        $this->transport = $transport;
         $this->sampler = $sampler;
-
         $this->scopeManager = $scopeManager;
-
         $this->setTags($this->sampler->getTags());
         $this->setTags($this->getEnvTags());
 
@@ -93,7 +94,6 @@ class Tracer implements OpenTracerInterface {
             $this->tags = array_merge($this->tags, $tags);
         }
     }
-
 
     /**
      * init span info
@@ -139,18 +139,10 @@ class Tracer implements OpenTracerInterface {
         return $span;
     }
 
-
     public function setPropagator(Propagator $propagator){
         $this->propagator = $propagator;
     }
 
-
-    /**
-     * 注入
-     * @param SpanContext $spanContext
-     * @param string $format
-     * @param $carrier
-     */
     public function inject(SpanContext $spanContext, $format, &$carrier){
         if($format == Formats\TEXT_MAP){
             $this->propagator->inject($spanContext, $format, $carrier);
@@ -159,12 +151,6 @@ class Tracer implements OpenTracerInterface {
         }
     }
 
-
-    /**
-     * 提取
-     * @param string $format
-     * @param $carrier
-     */
     public function extract($format, $carrier){
         if($format == Formats\TEXT_MAP){
             return $this->propagator->extract($format, $carrier);
@@ -173,24 +159,13 @@ class Tracer implements OpenTracerInterface {
         }
     }
 
-
     public function getSpans(){
         return $this->spans;
     }
 
-
-    public function reportSpan() { // @todo - remove reporter layer
-        if($this->spans) {
-            $this->reporter->report($this);
-            $this->spans = [];
-        }
-    }
-
-
     public function getScopeManager(){
         return $this->scopeManager;
     }
-
 
     public function getActiveSpan(){
         $activeScope = $this->getScopeManager()->getActive();
@@ -200,7 +175,6 @@ class Tracer implements OpenTracerInterface {
 
         return $activeScope->getSpan();
     }
-
 
     public function startActiveSpan($operationName, $options = []){
         if (!$options instanceof StartSpanOptions) {
@@ -217,7 +191,6 @@ class Tracer implements OpenTracerInterface {
         return $this->getScopeManager()->activate($span, $options->shouldFinishSpanOnClose());
     }
 
-
     private function getParentSpanContext(StartSpanOptions $options)
     {
         $references = $options->getReferences();
@@ -229,7 +202,6 @@ class Tracer implements OpenTracerInterface {
 
         return null;
     }
-
 
     public function getEnvTags(){
         $tags = [];
@@ -244,22 +216,19 @@ class Tracer implements OpenTracerInterface {
         return $tags;
     }
 
-
     public function gen128bit(){
         $this->gen128bit = true;
     }
 
-
-    /**
-     * 结束,发送信息到jaeger
-     */
-    public function flush(){
-        $this->reportSpan();
-        $this->reporter->close();
+    public function flush() {
+        if (!empty($this->spans)) {
+            $this->transport->append($this);
+            $this->transport->flush();
+            $this->spans = [];
+        }
     }
 
-
-    private function generateId(){
+    private function generateId() {
         return microtime(true) * 10000 . rand(10000, 99999);
     }
 }

@@ -18,16 +18,16 @@ namespace Jaeger\Transport;
 use Jaeger\Tracer;
 
 /**
- * Interface Transport
+ * Interface TransportInterface
  * @package Jaeger\Transport
  */
-interface Transport {
+interface TransportInterface {
 
     /**
-     * @param Jaeger $jaeger
+     * @param Tracer $tracer
      * @return mixed
      */
-    public function append(Tracer $jaeger);
+    public function append(Tracer $tracer);
 
     /**
      * @return int

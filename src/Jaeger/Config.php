@@ -1,37 +1,26 @@
 <?php
-/*
- * Copyright (c) 2019, The Jaeger Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
-
 namespace Jaeger;
 
+use OpenTracing\NoopTracer;
 use Jaeger\Reporter\RemoteReporter;
 use Jaeger\Reporter\Reporter;
 use Jaeger\Transport\TransportUdp;
-use OpenTracing\NoopTracer;
+use Jaeger\Transport\TransportInterface;
 use Jaeger\Sampler\Sampler;
 use Jaeger\Sampler\ConstSampler;
 use Jaeger\Propagator\JaegerPropagator;
 use Jaeger\Propagator\ZipkinPropagator;
 
+/**
+ * Class Config
+ * @package Jaeger
+ */
 class Config {
 
-    /**
-     * @var null|TransportUdp
-     */
-    private $transport = null;
+    const DEFAULT_SERVER_URL = '0.0.0.0:5775';
 
-    private $reporter = null;
+    /** @var string */
+    private $serverUrl = self::DEFAULT_SERVER_URL;
 
     private $sampler = null;
 
@@ -39,7 +28,8 @@ class Config {
 
     private $gen128bit = false;
 
-    public static $tracer = null;
+    /** @var Tracer[] */
+    public static $tracers;
 
     public static $span = null;
 
@@ -49,70 +39,70 @@ class Config {
 
     public static $propagator = \Jaeger\Constants\PROPAGATOR_JAEGER;
 
-    public static function getInstance()
+    /**
+     * @return Config
+     */
+    public static function getInstance(): self
     {
-        if(! (self::$instance instanceof self) )
-        {
+        if (!(self::$instance instanceof self)) {
             self::$instance = new self();
         }
+
         return self::$instance;
     }
 
-
     /**
-     * init jaeger, return can use flush  buffers
-     * @param $serviceName
+     * @param string $serviceName
      * @param string $agentHostPort
-     * @return Jaeger|null
+     * @return Tracer|null
      * @throws \Exception
      */
-    public function initTracer($serverName, $agentHostPort = ''){
+    public function initTracer(string $serverName, ?string $serverUrl = null) {
 
-        if(self::$disabled){
+        if (self::$disabled) {
             return NoopTracer::create();
         }
 
-        if($serverName == ''){
-            throw new \Exception("serverName require");
+        if (empty($serverName)) {
+            throw new \Exception("Server name is required");
         }
 
-        if(isset(self::$tracer[$serverName]) && !empty(self::$tracer[$serverName])){
-            return self::$tracer[$serverName];
+        if(!empty(self::$tracers[$serverName])) {
+            return self::$tracers[$serverName];
         }
 
-        if($this->transport == null) {
-            $this->transport = new TransportUdp($agentHostPort);
-        }
+        $serverUrl = $serverUrl ?: $this->serverUrl;
+        $transport = new TransportUdp($serverUrl);
 
-        if($this->reporter == null) {
-            $this->reporter = new RemoteReporter($this->transport);
-        }
-
-        if($this->sampler == null){
+        if (!$this->sampler) {
             $this->sampler = new ConstSampler(true);
         }
 
-        if($this->scopeManager == null){
+        if (!$this->scopeManager) {
             $this->scopeManager = new ScopeManager();
         }
 
-        $tracer = new Tracer($serverName, $this->reporter, $this->sampler, $this->scopeManager);
-
-        if($this->gen128bit == true){
+        $tracer = new Tracer($serverName, $transport, $this->sampler, $this->scopeManager);
+        if ($this->gen128bit) {
             $tracer->gen128bit();
         }
+        $propagator = (self::$propagator == \Jaeger\Constants\PROPAGATOR_ZIPKIN) ?
+            new ZipkinPropagator() : new JaegerPropagator();
+        $tracer->setPropagator($propagator);
 
-        if(self::$propagator == \Jaeger\Constants\PROPAGATOR_ZIPKIN){
-            $tracer->setPropagator(new ZipkinPropagator());
-        } else {
-            $tracer->setPropagator(new JaegerPropagator());
-        }
-
-        self::$tracer[$serverName] = $tracer;
-
-        return $tracer;
+        return self::$tracers[$serverName] = $tracer;
     }
 
+    /**
+     * @param string $serverUrl
+     * @return Config
+     */
+    public function setServerUrl(string $serverUrl): self
+    {
+        $this->serverUrl = $serverUrl; //@todo validate url
+
+        return $this;
+    }
 
     /**
      * close tracer
@@ -124,41 +114,24 @@ class Config {
         return $this;
     }
 
-
-    public function setTransport(Transport\Transport $transport){
-        $this->transport = $transport;
-
-        return $this;
-    }
-
-
-    public function setReporter(Reporter $reporter){
-        $this->reporter = $reporter;
-
-        return $this;
-    }
-
-
-    public function setSampler(Sampler $sampler){
+    public function setSampler(Sampler $sampler) {
         $this->sampler = $sampler;
 
         return $this;
     }
 
-
-    public function gen128bit(){
+    public function gen128bit() {
         $this->gen128bit = true;
 
         return $this;
     }
 
-
-    public function flush(){
-        if(count(self::$tracer) > 0) {
-            foreach(self::$tracer as $tracer){
-                $tracer->reportSpan();
+    public function flush(): bool
+    {
+        if (count(self::$tracers) > 0) {
+            foreach(self::$tracers as $tracer) {
+                $tracer->flush();
             }
-            $this->reporter->close();
         }
 
         return true;
