@@ -15,7 +15,7 @@
 
 namespace Jaeger\Transport;
 
-use Jaeger\Jaeger;
+use Jaeger\Tracer;
 use Jaeger\Thrift\AgentClient;
 use Jaeger\Thrift\JaegerThriftSpan;
 use Jaeger\Thrift\Process;
@@ -51,6 +51,8 @@ class TransportUdp implements Transport {
 
     public function __construct(?string $hostPort = '', ?string $maxPacketSize = '')
     {
+        $parts = explode('//', $hostPort);
+        $hostPort = end($hostPort);
         $this->hostPort = empty($hostPort)? $this->agentServerHostPort: $hostPort;
 
         if($maxPacketSize == 0){
@@ -63,7 +65,7 @@ class TransportUdp implements Transport {
         $this->thriftProtocol = new TCompactProtocol($this->tran);
     }
 
-    public function buildAndCalcSizeOfProcessThrift(Jaeger $jaeger): void
+    public function buildAndCalcSizeOfProcessThrift(Tracer $jaeger): void
     {
         $jaeger->processThrift = (new JaegerThriftSpan())->buildJaegerProcessThrift($jaeger);
         $jaeger->process = (new Process($jaeger->processThrift));
@@ -77,7 +79,7 @@ class TransportUdp implements Transport {
      * @param Jaeger $jaeger
      * @return bool
      */
-    public function append(Jaeger $jaeger){
+    public function append(Tracer $jaeger){
 
         if($jaeger->process == null){
             $this->buildAndCalcSizeOfProcessThrift($jaeger);

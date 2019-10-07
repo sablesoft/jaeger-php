@@ -15,14 +15,14 @@
 
 namespace Jaeger\Thrift;
 
-use Jaeger\Jaeger;
+use Jaeger\Tracer;
 use Jaeger\Span;
 use OpenTracing\Reference;
 
 class JaegerThriftSpan{
 
 
-    public function buildJaegerProcessThrift(Jaeger $jaeger){
+    public function buildJaegerProcessThrift(Tracer $jaeger){
         $tags = [];
         $ip = isset($_SERVER['SERVER_ADDR']) ? $_SERVER['SERVER_ADDR'] : '0.0.0.0';
         $tags['peer.ipv4'] = $ip;

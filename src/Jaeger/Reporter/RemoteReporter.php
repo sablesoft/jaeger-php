@@ -15,7 +15,7 @@
 
 namespace Jaeger\Reporter;
 
-use Jaeger\Jaeger;
+use Jaeger\Tracer;
 use Jaeger\Transport\Transport;
 use Jaeger\Transport\TransportUdp;
 
@@ -31,7 +31,7 @@ class RemoteReporter implements Reporter {
         $this->tran = $tran;
     }
 
-    public function report(Jaeger $jaeger)
+    public function report(Tracer $jaeger)
     {
         $this->tran->append($jaeger);
     }

@@ -15,7 +15,7 @@
 
 namespace Jaeger\Transport;
 
-use Jaeger\Jaeger;
+use Jaeger\Tracer;
 
 /**
  * Interface Transport
@@ -27,7 +27,7 @@ interface Transport {
      * @param Jaeger $jaeger
      * @return mixed
      */
-    public function append(Jaeger $jaeger);
+    public function append(Tracer $jaeger);
 
     /**
      * @return int

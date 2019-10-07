@@ -15,11 +15,11 @@
 
 namespace Jaeger\Reporter;
 
-use Jaeger\Jaeger;
+use Jaeger\Tracer;
 
 interface Reporter{
 
-    public function report(Jaeger $jaeger);
+    public function report(Tracer $jaeger);
 
     public function close();
 }

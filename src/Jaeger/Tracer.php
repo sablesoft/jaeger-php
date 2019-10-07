@@ -19,13 +19,13 @@ use Jaeger\Reporter\RemoteReporter;
 use Jaeger\Sampler\Sampler;
 use OpenTracing\SpanContext;
 use OpenTracing\Formats;
-use OpenTracing\Tracer;
+use OpenTracing\Tracer as OpenTracerInterface;
 use Jaeger\Reporter\Reporter;
 use OpenTracing\StartSpanOptions;
 use OpenTracing\Reference;
 use Jaeger\Propagator\Propagator;
 
-class Jaeger implements Tracer {
+class Tracer implements OpenTracerInterface {
 
     /**
      * @var Reporter|RemoteReporter|null
@@ -179,7 +179,7 @@ class Jaeger implements Tracer {
     }
 
 
-    public function reportSpan(){
+    public function reportSpan() { // @todo - remove reporter layer
         if($this->spans) {
             $this->reporter->report($this);
             $this->spans = [];
@@ -263,6 +263,3 @@ class Jaeger implements Tracer {
         return microtime(true) * 10000 . rand(10000, 99999);
     }
 }
-
-
-?>
