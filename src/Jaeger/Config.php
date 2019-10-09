@@ -82,7 +82,7 @@ class Config {
             $this->scopeManager = new ScopeManager();
         }
 
-        $tracer = new Tracer($serverName, $transport, $this->sampler, $this->scopeManager);
+        $tracer = new Tracer($transport, $this->sampler, $this->scopeManager, $serverName);
         if ($this->gen128bit) {
             $tracer->gen128bit();
         }
