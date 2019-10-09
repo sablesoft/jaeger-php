@@ -54,7 +54,7 @@ class TransportUdp implements TransportInterface {
         ?string $maxPacketSize = ''
     ) {
         $parts = explode('//', $hostPort);
-        $hostPort = end($hostPort);
+        $hostPort = end($parts);
         $this->hostPort = empty($hostPort)? $this->agentServerHostPort: $hostPort;
 
         if ($maxPacketSize == 0) {
