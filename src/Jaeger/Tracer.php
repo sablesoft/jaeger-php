@@ -83,7 +83,7 @@ class Tracer implements OpenTracerInterface {
      */
     public function setHostPort(string $hostPort): void
     {
-        $this->reporter->tran->hostPort = $hostPort;
+        $this->transport->hostPort = $hostPort;
     }
 
     /**
